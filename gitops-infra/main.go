@@ -5,6 +5,7 @@ import (
 	"fmt"
 	v12 "github.com/pulumi/pulumi-kubernetes/sdk/v3/go/kubernetes/apps/v1"
 	rbac "github.com/pulumi/pulumi-kubernetes/sdk/v3/go/kubernetes/rbac/v1"
+	"github.com/pulumi/pulumi/sdk/v3/go/pulumi/config"
 
 	"github.com/pulumi/pulumi-aws/sdk/v5/go/aws/ec2"
 	"github.com/pulumi/pulumi-eks/sdk/go/eks"
@@ -207,13 +208,14 @@ func main() {
 					"interval": pulumi.String("1m"),
 					"install": pulumi.Map{
 						"createNamespace": pulumi.Bool(true),
+						"crds":            pulumi.String("CreateReplace"),
 					},
 					"targetNamespace": pulumi.String("pulumi-operator"),
 					"chart": pulumi.Map{
 						"spec": pulumi.Map{
 							"chart":    pulumi.String("pulumi-kubernetes-operator"),
 							"interval": pulumi.String("1m"),
-							"version":  pulumi.String("0.1.0"),
+							"version":  pulumi.String("0.2.0"),
 							"sourceRef": pulumi.Map{
 								"kind":      pulumiOCIRepo.Kind,
 								"name":      pulumiOCIRepo.Metadata.Name(),
@@ -281,8 +283,11 @@ func main() {
 						},
 					},
 					"values": pulumi.Map{
-						"image": pulumi.Map{
-							"tag": pulumi.String("1.13.0"),
+						"extraEnv": pulumi.Array{
+							pulumi.Map{
+								"name":  pulumi.String("PULUMI_ACCESS_TOKEN"),
+								"value": config.GetSecret(ctx, "pulumi-pat"),
+							},
 						},
 						"fullnameOverride": pulumi.String("pulumi-operator"),
 					},
@@ -329,15 +334,16 @@ func main() {
 			},
 			OtherFields: kubernetes.UntypedArgs{
 				"spec": pulumi.Map{
-					"interval": pulumi.String("1m"),
-					"prune":    pulumi.Bool(true),
-					"force":    pulumi.Bool(false),
+					"interval":        pulumi.String("1m"),
+					"prune":           pulumi.Bool(true),
+					"force":           pulumi.Bool(false),
+					"targetNamespace": pulumi.String("pulumi-operator"),
 					"sourceRef": pulumi.Map{
 						"kind":      gitRepo.Kind,
 						"name":      gitRepo.Metadata.Name(),
 						"namespace": gitRepo.Metadata.Namespace(),
 					},
-					"path": pulumi.String("./"),
+					"path": pulumi.String("./kustomize"),
 				},
 			},
 		}, pulumi.Provider(k8sProvider), pulumi.DependsOn([]pulumi.Resource{gitRepo}))

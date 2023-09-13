@@ -9,3 +9,4 @@ Kubernetes with GitOps.
 The code consists of two Pulumi programs, one for the Backstage instance and one for the IaC:
 
 - [gitops-infra](/gitops-infra) - Pulumi program for the IaC
+- [backstage-infra](/backstage-infra) - Pulumi program for the Backstage instance
