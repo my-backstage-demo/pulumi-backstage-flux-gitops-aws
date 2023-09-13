@@ -1,0 +1,3 @@
+config:
+  pulumi-backstage-flux-gitops-aws:pulumi-pat:
+    secure: AAABAEcgBDZnw29XHcUZBxQBljJdSrpnPAGbDiiA6x/PgqfcH4aqghBnVYyCBua6glF8t5cB6V2s4ca2A8gc0d/CED4fMX/Dk5vDjg==

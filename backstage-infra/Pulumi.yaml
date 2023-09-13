@@ -1,0 +1,5 @@
+name: backstage-infra
+runtime: go
+description: A minimal Go Pulumi program
+config:
+  infraStackRef: "dirien/pulumi-backstage-flux-gitops-aws/dev"

@@ -1,0 +1,4 @@
+config:
+  aws-native:region: eu-central-1
+  backstage-infra:pulumi-pat:
+    secure: AAABAK4dArOVADROK9UOWHPH0m4lCAQoXD1fObKeVV7zuYx8LpyBwyJxSl8qtiSo9FBqSVMVhGYDE/ldve6DVVMI/E9nDnhSVp83SA==
