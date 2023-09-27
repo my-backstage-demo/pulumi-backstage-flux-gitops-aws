@@ -3730,37 +3730,6 @@
     pkginfo "^0.4.1"
     uid2 "^1.0.0"
 
-"@ediri/plugin-pulumi@^0.1.3":
-  version "0.1.3"
-  resolved "https://registry.yarnpkg.com/@ediri/plugin-pulumi/-/plugin-pulumi-0.1.3.tgz#a38203527c1fad14ae95740daca945b1b7437c27"
-  integrity sha512-KJElZS/7iT91hjWgt5+eeYbvDkvTFqMU1c6ovSBdFFfxIYfrXdn4G10aT6v199Le1SLxxdDhjiJ0chPf3eqHCQ==
-  dependencies:
-    "@backstage/catalog-model" "^1.4.1"
-    "@backstage/core-components" "^0.13.4"
-    "@backstage/core-plugin-api" "^1.5.3"
-    "@backstage/errors" "^1.2.1"
-    "@backstage/plugin-catalog-react" "^1.8.3"
-    "@backstage/plugin-kubernetes" "^0.10.2"
-    "@backstage/plugin-kubernetes-common" "^0.6.5"
-    "@backstage/theme" "^0.4.1"
-    "@material-ui/core" "^4.12.2"
-    "@material-ui/icons" "^4.9.1"
-    "@material-ui/lab" "4.0.0-alpha.61"
-    react-use "^17.2.4"
-
-"@ediri/scaffolder-backend-module-pulumi@^0.3.11":
-  version "0.3.11"
-  resolved "https://registry.yarnpkg.com/@ediri/scaffolder-backend-module-pulumi/-/scaffolder-backend-module-pulumi-0.3.11.tgz#d3fc1eed4f027927f23fed8fae4d9c45a59f6591"
-  integrity sha512-9htOywIWoaZlgFkcgUpLeEn2QB5WGLNO65bn6xWx2XxutSIVTecJSFcFv4ZCeZXb/qBHjyjv6O1dHaaUTYRwIw==
-  dependencies:
-    "@backstage/errors" "^1.2.1"
-    "@backstage/integration" "^1.5.1"
-    "@backstage/plugin-scaffolder-backend" "^1.15.1"
-    "@backstage/plugin-scaffolder-node" "^0.1.5"
-    "@backstage/types" "^1.1.0"
-    "@pulumi/pulumi" "^3.77.1"
-    zod "^3.21.4"
-
 "@emotion/babel-plugin@^11.11.0":
   version "11.11.0"
   resolved "https://registry.yarnpkg.com/@emotion/babel-plugin/-/babel-plugin-11.11.0.tgz#c2d872b6a7767a9d176d007f5b31f7d504bb5d6c"
@@ -6434,6 +6403,38 @@
   version "1.1.0"
   resolved "https://registry.yarnpkg.com/@protobufjs/utf8/-/utf8-1.1.0.tgz#a777360b5b39a1a2e5106f8e858f2fd2d060c570"
   integrity sha512-Vvn3zZrhQZkkBE8LSuW3em98c0FwgO4nxzv6OdSxPKJIEKY2bGbHn+mhGIPerzI4twdxaP8/0+06HBpwf345Lw==
+
+"@pulumi/backstage-plugin-pulumi@^0.1.0":
+  version "0.1.0"
+  resolved "https://registry.yarnpkg.com/@pulumi/backstage-plugin-pulumi/-/backstage-plugin-pulumi-0.1.0.tgz#71575e1348cc39f0777a2f8db84bc2b7920b068d"
+  integrity sha512-jOUjJLVd7jfdvjVqLNh1gzcuZapAMWvYuuV4b/6W5edUkRvpzYQWOCTnfMIcTthCanSgrHzGdGmOHvMBjBe44g==
+  dependencies:
+    "@backstage/catalog-model" "^1.4.1"
+    "@backstage/core-components" "^0.13.4"
+    "@backstage/core-plugin-api" "^1.5.3"
+    "@backstage/errors" "^1.2.1"
+    "@backstage/plugin-catalog-react" "^1.8.3"
+    "@backstage/plugin-kubernetes" "^0.10.2"
+    "@backstage/plugin-kubernetes-common" "^0.6.5"
+    "@backstage/theme" "^0.4.1"
+    "@material-ui/core" "^4.12.2"
+    "@material-ui/icons" "^4.9.1"
+    "@material-ui/lab" "4.0.0-alpha.61"
+    react-use "^17.2.4"
+
+"@pulumi/backstage-scaffolder-backend-pulumi@^0.1.0":
+  version "0.1.0"
+  resolved "https://registry.yarnpkg.com/@pulumi/backstage-scaffolder-backend-pulumi/-/backstage-scaffolder-backend-pulumi-0.1.0.tgz#569fa007bf81fa2e8edfc222a00190a23874c8b0"
+  integrity sha512-afTqujRAXZLbtUlcJLdJPpstKDzKkDfC6pXljlRhh3lTN24l/ZyJ/xwkyGghB8dPqlFj9HrkKkgIoilZzn3dKg==
+  dependencies:
+    "@backstage/errors" "^1.2.1"
+    "@backstage/integration" "^1.5.1"
+    "@backstage/plugin-scaffolder-backend" "^1.15.1"
+    "@backstage/plugin-scaffolder-node" "^0.1.5"
+    "@backstage/types" "^1.1.0"
+    "@pulumi/pulumi" "^3.77.1"
+    "@types/node" "*"
+    zod "^3.21.4"
 
 "@pulumi/pulumi@^3.77.1":
   version "3.81.0"
@@ -9139,9 +9140,9 @@ anymatch@^3.0.3, anymatch@~3.1.2:
     "@backstage/plugin-techdocs-react" "^1.1.9"
     "@backstage/plugin-user-settings" "^0.7.6"
     "@backstage/theme" "^0.4.1"
-    "@ediri/plugin-pulumi" "^0.1.3"
     "@material-ui/core" "^4.12.2"
     "@material-ui/icons" "^4.9.1"
+    "@pulumi/backstage-plugin-pulumi" "^0.1.0"
     "@weaveworksoss/backstage-plugin-flux" "^0.8.1"
     history "^5.0.0"
     react "^17.0.2"

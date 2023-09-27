@@ -73,7 +73,7 @@ import {
     EntityPulumiCard,
     EntityPulumiMetdataCard,
     PulumiComponent
-} from '@ediri/plugin-pulumi';
+} from '@pulumi/backstage-plugin-pulumi';
 
 const techdocsContent = (
   <EntityTechdocsContent>
