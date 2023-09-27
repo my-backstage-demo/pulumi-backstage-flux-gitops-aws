@@ -6,7 +6,7 @@ import type { PluginEnvironment } from '../types';
 import {
   pulumiNewAction,
   pulumiUpAction
-} from '@ediri/scaffolder-backend-module-pulumi';
+} from '@pulumi/backstage-scaffolder-backend-pulumi';
 
 import { ScmIntegrations } from '@backstage/integration';
 
