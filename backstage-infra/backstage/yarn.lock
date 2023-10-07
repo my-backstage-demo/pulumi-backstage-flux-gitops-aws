@@ -2348,7 +2348,7 @@
     zen-observable "^0.10.0"
     zod "^3.21.4"
 
-"@backstage/core-components@^0.13.3", "@backstage/core-components@^0.13.4":
+"@backstage/core-components@^0.13.4":
   version "0.13.4"
   resolved "https://registry.yarnpkg.com/@backstage/core-components/-/core-components-0.13.4.tgz#0275bf4c1e2495c4357db560eec33f15f941f90b"
   integrity sha512-rkiGtAm9JAHHmSEAOzafFfTbBzlOb6Ecu/Ng78fn4H1qig7Vdm7zJ6FwXcnfREMgiSV+xnoOioN7XMyZAfjMgg==
@@ -2730,7 +2730,7 @@
     "@backstage/plugin-catalog-common" "^1.0.15"
     "@backstage/types" "^1.1.0"
 
-"@backstage/plugin-catalog-react@^1.8.0", "@backstage/plugin-catalog-react@^1.8.1", "@backstage/plugin-catalog-react@^1.8.3":
+"@backstage/plugin-catalog-react@^1.8.1", "@backstage/plugin-catalog-react@^1.8.3":
   version "1.8.3"
   resolved "https://registry.yarnpkg.com/@backstage/plugin-catalog-react/-/plugin-catalog-react-1.8.3.tgz#06103b2707de6d2f2c6e2d1514c3237eb98d1f3e"
   integrity sha512-rY01QsZvVt87K+pVv1moP1cGUXyYV/1d/XLYb+mAvd5wX81nqZ3WWfn6jQQm4mgLMm/spfl/lt1D3lUgHDvQiQ==
@@ -2878,33 +2878,6 @@
     "@backstage/core-plugin-api" "^1.5.3"
     "@backstage/errors" "^1.2.1"
     "@backstage/plugin-catalog-react" "^1.8.3"
-    "@backstage/plugin-kubernetes-common" "^0.6.5"
-    "@backstage/theme" "^0.4.1"
-    "@kubernetes-models/apimachinery" "^1.1.0"
-    "@kubernetes-models/base" "^4.0.1"
-    "@kubernetes/client-node" "0.18.1"
-    "@material-ui/core" "^4.12.2"
-    "@material-ui/icons" "^4.9.1"
-    "@material-ui/lab" "4.0.0-alpha.61"
-    "@types/react" "^16.13.1 || ^17.0.0"
-    cronstrue "^2.2.0"
-    js-yaml "^4.0.0"
-    kubernetes-models "^4.1.0"
-    lodash "^4.17.21"
-    luxon "^3.0.0"
-    react-use "^17.2.4"
-
-"@backstage/plugin-kubernetes@^0.9.3":
-  version "0.9.3"
-  resolved "https://registry.yarnpkg.com/@backstage/plugin-kubernetes/-/plugin-kubernetes-0.9.3.tgz#75b5d50b8338e35dbd9b8d1bc2c1fb7521ac7823"
-  integrity sha512-gLQ6VZKDqZofMySV4ZJwLUNqedySRH4I1vaT37kl+cdJr62ingpfhqFdliwZyecauslxLfidZhq3KzaPm0hTsg==
-  dependencies:
-    "@backstage/catalog-model" "^1.4.1"
-    "@backstage/config" "^1.0.8"
-    "@backstage/core-components" "^0.13.3"
-    "@backstage/core-plugin-api" "^1.5.3"
-    "@backstage/errors" "^1.2.1"
-    "@backstage/plugin-catalog-react" "^1.8.0"
     "@backstage/plugin-kubernetes-common" "^0.6.5"
     "@backstage/theme" "^0.4.1"
     "@kubernetes-models/apimachinery" "^1.1.0"
@@ -6404,10 +6377,10 @@
   resolved "https://registry.yarnpkg.com/@protobufjs/utf8/-/utf8-1.1.0.tgz#a777360b5b39a1a2e5106f8e858f2fd2d060c570"
   integrity sha512-Vvn3zZrhQZkkBE8LSuW3em98c0FwgO4nxzv6OdSxPKJIEKY2bGbHn+mhGIPerzI4twdxaP8/0+06HBpwf345Lw==
 
-"@pulumi/backstage-plugin-pulumi@^0.1.0":
-  version "0.1.0"
-  resolved "https://registry.yarnpkg.com/@pulumi/backstage-plugin-pulumi/-/backstage-plugin-pulumi-0.1.0.tgz#71575e1348cc39f0777a2f8db84bc2b7920b068d"
-  integrity sha512-jOUjJLVd7jfdvjVqLNh1gzcuZapAMWvYuuV4b/6W5edUkRvpzYQWOCTnfMIcTthCanSgrHzGdGmOHvMBjBe44g==
+"@pulumi/backstage-plugin-pulumi@^0.1.2":
+  version "0.1.2"
+  resolved "https://registry.yarnpkg.com/@pulumi/backstage-plugin-pulumi/-/backstage-plugin-pulumi-0.1.2.tgz#590e28989083a8df3349ce71f9dc6f8855dc64dd"
+  integrity sha512-7sy4Yz5066cdI1/TA+9AIISgx1nKIonFViOaly2a4reNOsX/Zuny8TLz/XuPhxCB/OCiQdv7jYkQKJaCh3gEvg==
   dependencies:
     "@backstage/catalog-model" "^1.4.1"
     "@backstage/core-components" "^0.13.4"
@@ -6422,10 +6395,10 @@
     "@material-ui/lab" "4.0.0-alpha.61"
     react-use "^17.2.4"
 
-"@pulumi/backstage-scaffolder-backend-pulumi@^0.1.0":
-  version "0.1.0"
-  resolved "https://registry.yarnpkg.com/@pulumi/backstage-scaffolder-backend-pulumi/-/backstage-scaffolder-backend-pulumi-0.1.0.tgz#569fa007bf81fa2e8edfc222a00190a23874c8b0"
-  integrity sha512-afTqujRAXZLbtUlcJLdJPpstKDzKkDfC6pXljlRhh3lTN24l/ZyJ/xwkyGghB8dPqlFj9HrkKkgIoilZzn3dKg==
+"@pulumi/backstage-scaffolder-backend-pulumi@^0.1.2":
+  version "0.1.2"
+  resolved "https://registry.yarnpkg.com/@pulumi/backstage-scaffolder-backend-pulumi/-/backstage-scaffolder-backend-pulumi-0.1.2.tgz#56a2ed6fc1af75a73501c4c4137cdaf1a31485e1"
+  integrity sha512-wFUjmHikTeft4sd3XIjrKV3/KVFq82owmHC2FPKncTAHaPWpmOVkxHTB12kaNO1YAB63W5p2DKWxjIq1bvV+gg==
   dependencies:
     "@backstage/errors" "^1.2.1"
     "@backstage/integration" "^1.5.1"
@@ -8689,16 +8662,16 @@
     "@uiw/codemirror-extensions-basic-setup" "4.21.13"
     codemirror "^6.0.0"
 
-"@weaveworksoss/backstage-plugin-flux@^0.8.1":
-  version "0.8.1"
-  resolved "https://registry.yarnpkg.com/@weaveworksoss/backstage-plugin-flux/-/backstage-plugin-flux-0.8.1.tgz#9e35ea959d6a49fe98c2b250233ae9de01415a26"
-  integrity sha512-3pC0jY5gRD30EZItkojSbBeWnCq5JxHG7Xj6f1ZixeS5Sc39Ro3Ctyl+/Ms3kwfSdQXQpL1+C9YZ5ih+L2n4MA==
+"@weaveworksoss/backstage-plugin-flux@^0.8.3":
+  version "0.8.3"
+  resolved "https://registry.yarnpkg.com/@weaveworksoss/backstage-plugin-flux/-/backstage-plugin-flux-0.8.3.tgz#a52ec23ed5e84cfe4073a30d571a72757512b00b"
+  integrity sha512-7K4QVfYb30aI1cdBEoJjmMgBrl5nUx9n0c8FtjZtYCe4GZ5QGToTWRt7UuWpNdBidYSQHrKpJ2EEWb1AFmKOiA==
   dependencies:
     "@backstage/catalog-model" "^1.4.1"
-    "@backstage/core-components" "^0.13.3"
+    "@backstage/core-components" "^0.13.4"
     "@backstage/core-plugin-api" "^1.5.3"
-    "@backstage/plugin-catalog-react" "^1.8.0"
-    "@backstage/plugin-kubernetes" "^0.9.3"
+    "@backstage/plugin-catalog-react" "^1.8.3"
+    "@backstage/plugin-kubernetes" "^0.10.2"
     "@backstage/plugin-kubernetes-common" "^0.6.5"
     "@backstage/theme" "^0.4.1"
     "@material-ui/core" "^4.12.2"
@@ -9142,8 +9115,8 @@ anymatch@^3.0.3, anymatch@~3.1.2:
     "@backstage/theme" "^0.4.1"
     "@material-ui/core" "^4.12.2"
     "@material-ui/icons" "^4.9.1"
-    "@pulumi/backstage-plugin-pulumi" "^0.1.0"
-    "@weaveworksoss/backstage-plugin-flux" "^0.8.1"
+    "@pulumi/backstage-plugin-pulumi" "^0.1.2"
+    "@weaveworksoss/backstage-plugin-flux" "^0.8.3"
     history "^5.0.0"
     react "^17.0.2"
     react-dom "^17.0.2"
