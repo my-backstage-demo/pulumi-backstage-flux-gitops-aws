@@ -4,7 +4,6 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"github.com/pulumi/pulumi-aws/sdk/v6/go/aws/rds"
 	"strings"
 
 	"github.com/pulumi/pulumi-aws/sdk/v6/go/aws/alb"
@@ -13,8 +12,8 @@ import (
 	"github.com/pulumi/pulumi-aws/sdk/v6/go/aws/ecr"
 	"github.com/pulumi/pulumi-aws/sdk/v6/go/aws/ecs"
 	"github.com/pulumi/pulumi-aws/sdk/v6/go/aws/iam"
+	"github.com/pulumi/pulumi-aws/sdk/v6/go/aws/rds"
 	"github.com/pulumi/pulumi-docker/sdk/v4/go/docker"
-
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi/config"
 )
@@ -39,7 +38,7 @@ func main() {
 		}
 		vpcId := infraStackRef.GetStringOutput(pulumi.String("vpc-id"))
 
-		group, err := ec2.NewSecurityGroup(ctx, "pulumi-backstage-flux-gitops-aws-sg", &ec2.SecurityGroupArgs{
+		group, err := ec2.NewSecurityGroup(ctx, "pulumi-backstage-aws-sg", &ec2.SecurityGroupArgs{
 			VpcId: vpcId,
 			Ingress: ec2.SecurityGroupIngressArray{
 				&ec2.SecurityGroupIngressArgs{
@@ -78,20 +77,20 @@ func main() {
 
 		// Create a subnet for each availability zone
 		for i, az := range availabilityZones {
-			publicSubnet, err := ec2.NewSubnet(ctx, fmt.Sprintf("pulumi-backstage-flux-gitops-aws-fargate-subnet-%d", i), &ec2.SubnetArgs{
+			publicSubnet, err := ec2.NewSubnet(ctx, fmt.Sprintf("pulumi-backstage-aws-fargate-subnet-%d", i), &ec2.SubnetArgs{
 				VpcId:                       vpcId,
 				CidrBlock:                   pulumi.String(publicSubnetCidrs[i]),
 				MapPublicIpOnLaunch:         pulumi.Bool(false),
 				AssignIpv6AddressOnCreation: pulumi.Bool(false),
 				AvailabilityZone:            pulumi.String(az),
 				Tags: pulumi.StringMap{
-					"Name": pulumi.Sprintf("pulumi-backstage-flux-gitops-aws-subnet-fargate-%s", az),
+					"Name": pulumi.Sprintf("pulumi-backstage-aws-subnet-fargate-%s", az),
 				},
 			})
 			if err != nil {
 				return err
 			}
-			_, err = ec2.NewRouteTableAssociation(ctx, fmt.Sprintf("pulumi-backstage-flux-gitops-aws-rt-association-%s", az), &ec2.RouteTableAssociationArgs{
+			_, err = ec2.NewRouteTableAssociation(ctx, fmt.Sprintf("pulumi-backstage-aws-rt-association-%s", az), &ec2.RouteTableAssociationArgs{
 				RouteTableId: infraStackRef.GetOutput(pulumi.String("route-table-id")).AsStringOutput(),
 				SubnetId:     publicSubnet.ID(),
 			})
@@ -101,29 +100,29 @@ func main() {
 			publicSubnetIDs = append(publicSubnetIDs, publicSubnet.ID())
 		}
 
-		loadBalancer, err := alb.NewLoadBalancer(ctx, "pulumi-backstage-flux-gitops-aws-alb", &alb.LoadBalancerArgs{
+		loadBalancer, err := alb.NewLoadBalancer(ctx, "pulumi-backstage-aws-alb", &alb.LoadBalancerArgs{
 			Subnets:          publicSubnetIDs,
 			LoadBalancerType: pulumi.String("application"),
 			SecurityGroups: pulumi.StringArray{
 				group.ID(),
 			},
-			Name: pulumi.String("pulumi-backstage-flux"),
+			Name: pulumi.String("pulumi-backstage"),
 		})
 		if err != nil {
 			return err
 		}
 
-		targetGroup, err := alb.NewTargetGroup(ctx, "pulumi-backstage-flux-gitops-aws-alb-target-group", &alb.TargetGroupArgs{
+		targetGroup, err := alb.NewTargetGroup(ctx, "pulumi-backstage-aws-alb-target-group", &alb.TargetGroupArgs{
 			Port:       pulumi.Int(80),
 			Protocol:   pulumi.String("HTTP"),
 			TargetType: pulumi.String("ip"),
-			Name:       pulumi.String("pulumi-backstage-flux"),
+			Name:       pulumi.String("pulumi-backstage"),
 			VpcId:      vpcId,
 		})
 		if err != nil {
 			return err
 		}
-		allListener, err := alb.NewListener(ctx, "pulumi-backstage-flux-gitops-aws-alb-listener", &alb.ListenerArgs{
+		allListener, err := alb.NewListener(ctx, "pulumi-backstage-aws-alb-listener", &alb.ListenerArgs{
 			LoadBalancerArn: loadBalancer.Arn,
 			Port:            pulumi.Int(80),
 			Protocol:        pulumi.String("HTTP"),
@@ -138,14 +137,14 @@ func main() {
 			return err
 		}
 
-		subnetGroup, err := rds.NewSubnetGroup(ctx, "pulumi-backstage-flux-gitops-aws-rds-subnet-group", &rds.SubnetGroupArgs{
+		subnetGroup, err := rds.NewSubnetGroup(ctx, "pulumi-backstage-aws-rds-subnet-group", &rds.SubnetGroupArgs{
 			SubnetIds: publicSubnetIDs,
 		})
 		if err != nil {
 			return err
 		}
 
-		instance, err := rds.NewInstance(ctx, "pulumi-backstage-flux-gitops-aws-rds", &rds.InstanceArgs{
+		instance, err := rds.NewInstance(ctx, "pulumi-backstage-aws-rds", &rds.InstanceArgs{
 			AllocatedStorage:   pulumi.Int(5),
 			InstanceClass:      rds.InstanceType_T3_Micro,
 			Engine:             pulumi.String("postgres"),
@@ -165,14 +164,15 @@ func main() {
 		}
 		ctx.Export("rds", instance.Endpoint)
 
-		repository, err := ecr.NewRepository(ctx, "backstage-repository", &ecr.RepositoryArgs{
-			Name: pulumi.String("backstage"),
+		repository, err := ecr.NewRepository(ctx, "pulumi-backstage-repository", &ecr.RepositoryArgs{
+			Name:        pulumi.String("backstage"),
+			ForceDelete: pulumi.Bool(true),
 		})
 		if err != nil {
 			return err
 		}
 
-		_, err = ecr.NewLifecyclePolicy(ctx, "backstage-lifecycle-policy", &ecr.LifecyclePolicyArgs{
+		_, err = ecr.NewLifecyclePolicy(ctx, "pulumi-backstage-lifecycle-policy", &ecr.LifecyclePolicyArgs{
 			Repository: repository.Name,
 			Policy: pulumi.String(`{
 				"rules": [
@@ -217,7 +217,7 @@ func main() {
 			return err
 		}
 
-		ecsRole, err := iam.NewRole(ctx, "backstage-ecs-role", &iam.RoleArgs{
+		ecsRole, err := iam.NewRole(ctx, "pulumi-backstage-ecs-role", &iam.RoleArgs{
 			AssumeRolePolicy: pulumi.String(ecsAssumeRolePolicyResult.Json),
 		})
 		if err != nil {
@@ -228,24 +228,20 @@ func main() {
 				{
 					Effect: pulumi.StringRef("Allow"),
 					Actions: []string{
-						"ecr:BatchCheckLayerAvailability",
-						"ecr:BatchGetImage",
-						"ecr:GetDownloadUrlForLayer",
-						"ecr:GetAuthorizationToken",
-						//"ssmmessages:CreateControlChannel",
-						//"ssmmessages:CreateDataChannel",
-						//"ssmmessages:OpenControlChannel",
-						//"ssmmessages:OpenDataChannel",
-					},
-					Resources: []string{
-						"*",
-					},
-				},
-				{
-					Effect: pulumi.StringRef("Allow"),
-					Actions: []string{
-						"rds-db:connect",
-						"rds:DescribeDBInstances",
+						"rds-db:*",
+						"s3:*",
+						"ecr:*",
+						"rds:*",
+						"ecs:*",
+						"ec2:*",
+						"eks:*",
+						"iam:*",
+						"lambda:*",
+						"apigateway:*",
+						"ssm:*",
+						"autoscaling-plans:*",
+						"autoscaling:*",
+						"cloudformation:*",
 					},
 					Resources: []string{
 						"*",
@@ -254,14 +250,14 @@ func main() {
 			},
 		})
 
-		ecsIAMPolicy, err := iam.NewPolicy(ctx, "ecs-policy", &iam.PolicyArgs{
+		ecsIAMPolicy, err := iam.NewPolicy(ctx, "pulumi-backstage-ecs-policy", &iam.PolicyArgs{
 			Policy: pulumi.String(ecsPolicyResult.Json),
 		})
 		if err != nil {
 			return err
 		}
 
-		_, err = iam.NewRolePolicyAttachment(ctx, "ecs-role-policy-attachment", &iam.RolePolicyAttachmentArgs{
+		_, err = iam.NewRolePolicyAttachment(ctx, "pulumi-backstage-ecs-role-policy-attachment", &iam.RolePolicyAttachmentArgs{
 			PolicyArn: ecsIAMPolicy.Arn,
 			Role:      ecsRole.Name,
 		})
@@ -288,14 +284,14 @@ func main() {
 			return err
 		}
 
-		taskExecutionRole, err := iam.NewRole(ctx, "backstage-ecs-task-execution-role", &iam.RoleArgs{
+		taskExecutionRole, err := iam.NewRole(ctx, "pulumi-backstage-ecs-task-execution-role", &iam.RoleArgs{
 			AssumeRolePolicy: pulumi.String(taskExecutionResult.Json),
 		})
 		if err != nil {
 			return err
 		}
 
-		_, err = iam.NewRolePolicyAttachment(ctx, "ecs-task-execution-role-policy-attachment", &iam.RolePolicyAttachmentArgs{
+		_, err = iam.NewRolePolicyAttachment(ctx, "pulumi-backstage-ecs-task-execution-role-policy-attachment", &iam.RolePolicyAttachmentArgs{
 			PolicyArn: pulumi.String("arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"),
 			Role:      taskExecutionRole.Name,
 		})
@@ -322,7 +318,7 @@ func main() {
 		}).(docker.RegistryOutput)
 
 		//docker build ../.. -f Dockerfile --tag backstage
-		backstageImage, err := docker.NewImage(ctx, "backstage-image", &docker.ImageArgs{
+		backstageImage, err := docker.NewImage(ctx, "pulumi-backstage-image", &docker.ImageArgs{
 			Build: docker.DockerBuildArgs{
 				Context:        pulumi.String("./backstage"),
 				Platform:       pulumi.String("linux/amd64"),
@@ -337,14 +333,14 @@ func main() {
 		}
 		ctx.Export("backstage-image", backstageImage.RepoDigest)
 
-		cluster, err := ecs.NewCluster(ctx, "cluster", &ecs.ClusterArgs{
+		cluster, err := ecs.NewCluster(ctx, "pulumi-backstage-ecs-cluster", &ecs.ClusterArgs{
 			Name: pulumi.String("backstage"),
 		})
 		if err != nil {
 			return err
 		}
 
-		logGroup, err := cloudwatch.NewLogGroup(ctx, "backstage-log-group", &cloudwatch.LogGroupArgs{
+		logGroup, err := cloudwatch.NewLogGroup(ctx, "pulumi-backstage-log-group", &cloudwatch.LogGroupArgs{
 			Name:            pulumi.String("backstage-log"),
 			RetentionInDays: pulumi.Int(7),
 		})
@@ -352,8 +348,11 @@ func main() {
 			return err
 		}
 
-		backstageECSTask, err := ecs.NewTaskDefinition(ctx, "appTask", &ecs.TaskDefinitionArgs{
+		backstageECSTask, err := ecs.NewTaskDefinition(ctx, "pulumi-backstage-ecs-task", &ecs.TaskDefinitionArgs{
 			Family: pulumi.String("backstage"),
+			EphemeralStorage: &ecs.TaskDefinitionEphemeralStorageArgs{
+				SizeInGib: pulumi.Int(100),
+			},
 			ContainerDefinitions: pulumi.Sprintf(`[
     {
       "name": "app-first-task",
@@ -419,8 +418,8 @@ func main() {
 				pulumi.String("FARGATE"),
 			},
 			NetworkMode:      pulumi.String("awsvpc"),
-			Memory:           pulumi.String("2048"),
-			Cpu:              pulumi.String("1024"),
+			Memory:           pulumi.String("6144"),
+			Cpu:              pulumi.String("2048"),
 			ExecutionRoleArn: taskExecutionRole.Arn,
 			TaskRoleArn:      ecsRole.Arn,
 		})
@@ -428,7 +427,7 @@ func main() {
 			return err
 		}
 
-		fargateSecurityGroup, err := ec2.NewSecurityGroup(ctx, "pulumi-backstage-flux-gitops-aws-fargate-service-sg", &ec2.SecurityGroupArgs{
+		fargateSecurityGroup, err := ec2.NewSecurityGroup(ctx, "pulumi-backstage-aws-fargate-service-sg", &ec2.SecurityGroupArgs{
 			VpcId: vpcId,
 			Ingress: ec2.SecurityGroupIngressArray{
 				&ec2.SecurityGroupIngressArgs{
@@ -455,7 +454,7 @@ func main() {
 			return err
 		}
 
-		_, err = ecs.NewService(ctx, "appService", &ecs.ServiceArgs{
+		_, err = ecs.NewService(ctx, "pulumi-backstage-service", &ecs.ServiceArgs{
 			Cluster:        cluster.Arn,
 			TaskDefinition: backstageECSTask.Arn,
 			NetworkConfiguration: &ecs.ServiceNetworkConfigurationArgs{

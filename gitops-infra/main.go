@@ -3,18 +3,19 @@ package main
 import (
 	b64 "encoding/base64"
 	"fmt"
-	v12 "github.com/pulumi/pulumi-kubernetes/sdk/v3/go/kubernetes/apps/v1"
-	rbac "github.com/pulumi/pulumi-kubernetes/sdk/v3/go/kubernetes/rbac/v1"
-	"github.com/pulumi/pulumi/sdk/v3/go/pulumi/config"
-
 	"github.com/pulumi/pulumi-aws/sdk/v5/go/aws/ec2"
+	"github.com/pulumi/pulumi-aws/sdk/v5/go/aws/iam"
 	"github.com/pulumi/pulumi-eks/sdk/go/eks"
 	"github.com/pulumi/pulumi-kubernetes/sdk/v3/go/kubernetes"
 	"github.com/pulumi/pulumi-kubernetes/sdk/v3/go/kubernetes/apiextensions"
+	v12 "github.com/pulumi/pulumi-kubernetes/sdk/v3/go/kubernetes/apps/v1"
 	v1 "github.com/pulumi/pulumi-kubernetes/sdk/v3/go/kubernetes/core/v1"
 	"github.com/pulumi/pulumi-kubernetes/sdk/v3/go/kubernetes/helm/v3"
 	metav1 "github.com/pulumi/pulumi-kubernetes/sdk/v3/go/kubernetes/meta/v1"
+	rbac "github.com/pulumi/pulumi-kubernetes/sdk/v3/go/kubernetes/rbac/v1"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
+	"github.com/pulumi/pulumi/sdk/v3/go/pulumi/config"
+	"os"
 )
 
 var (
@@ -29,7 +30,9 @@ var (
 )
 
 const (
-	clusterName = "pulumi-backstage-flux-gitops-aws"
+	clusterName       = "pulumi-backstage-flux-gitops-aws"
+	albNamespace      = "aws-lb-controller"
+	albServiceAccount = "system:serviceaccount:" + albNamespace + ":aws-lb-controller-serviceaccount"
 )
 
 func main() {
@@ -111,6 +114,65 @@ func main() {
 
 		ctx.Export("kubeconfig", pulumi.ToSecret(cluster.Kubeconfig))
 
+		// enable ALB
+		albRole, err := iam.NewRole(ctx, "alb-role", &iam.RoleArgs{
+			AssumeRolePolicy: pulumi.All(cluster.Core.OidcProvider().Arn(), cluster.Core.OidcProvider().Url()).ApplyT(func(args []interface{}) string {
+				arn := args[0].(string)
+				url := args[1].(string)
+				assumeRolePolicy, _ := iam.GetPolicyDocument(ctx, &iam.GetPolicyDocumentArgs{
+					Statements: []iam.GetPolicyDocumentStatement{
+						{
+							Effect: pulumi.StringRef("Allow"),
+							Actions: []string{
+								"sts:AssumeRoleWithWebIdentity",
+							},
+							Principals: []iam.GetPolicyDocumentStatementPrincipal{
+								{
+									Type: "Federated",
+									Identifiers: []string{
+										arn,
+									},
+								},
+							},
+							Conditions: []iam.GetPolicyDocumentStatementCondition{
+								{
+									Test: "StringEquals",
+									Values: []string{
+										albServiceAccount,
+									},
+									Variable: fmt.Sprintf("%s:sub", url),
+								},
+							},
+						},
+					},
+				})
+				return assumeRolePolicy.Json
+			}).(pulumi.StringOutput),
+		})
+		if err != nil {
+			return err
+		}
+
+		albPolicyFile, err := os.ReadFile("./iam-policies/alb-iam-policy.json")
+		if err != nil {
+			return err
+		}
+
+		albIAMPolicy, err := iam.NewPolicy(ctx, "alb-policy", &iam.PolicyArgs{
+			Policy: pulumi.String(albPolicyFile),
+		}, pulumi.DependsOn([]pulumi.Resource{albRole}))
+		if err != nil {
+			return err
+		}
+
+		_, err = iam.NewRolePolicyAttachment(ctx, "alb-role-attachment", &iam.RolePolicyAttachmentArgs{
+			PolicyArn: albIAMPolicy.Arn,
+			Role:      albRole.Name,
+		}, pulumi.DependsOn([]pulumi.Resource{albIAMPolicy}))
+		if err != nil {
+			return err
+		}
+
 		k8sProvider, err := kubernetes.NewProvider(ctx, "kubernetes-provider", &kubernetes.ProviderArgs{
 			Kubeconfig:            cluster.KubeconfigJson,
 			EnableServerSideApply: pulumi.Bool(true),
@@ -127,7 +189,7 @@ func main() {
 			Chart:           pulumi.String("oci://ghcr.io/fluxcd-community/charts/flux2"),
 			Namespace:       pulumi.String("flux-system"),
 			CreateNamespace: pulumi.Bool(true),
-			Version:         pulumi.String("2.10.0"),
+			Version:         pulumi.String("2.10.1"),
 			Values: pulumi.Map{
 				"helmController": pulumi.Map{
 					"labels": backStageLabel,
@@ -171,182 +233,96 @@ func main() {
 			}
 		}
 
-		pulumiOCIRepo, err := apiextensions.NewCustomResource(ctx, "pulumi-backstage-flux-gitops-aws-pulumi-repo", &apiextensions.CustomResourceArgs{
-			ApiVersion: pulumi.String("source.toolkit.fluxcd.io/v1beta2"),
-			Kind:       pulumi.String("HelmRepository"),
+		_, err = v1.NewSecret(ctx, "aws-lb-controller-secret", &v1.SecretArgs{
 			Metadata: &metav1.ObjectMetaArgs{
-				Name:      pulumi.String("pulumi-oci-repo"),
+				Name:      pulumi.String("aws-load-balancer-controller-values"),
 				Namespace: flux.Namespace,
-				Labels: pulumi.StringMap{
-					"backstage.io/kubernetes-id": pulumi.String("gitops-cluster"),
-				},
 			},
-			OtherFields: kubernetes.UntypedArgs{
-				"spec": kubernetes.UntypedArgs{
-					"interval": pulumi.String("1m"),
-					"type":     pulumi.String("oci"),
-					"url":      pulumi.String("oci://ghcr.io/pulumi/helm-charts"),
-				},
+			StringData: pulumi.StringMap{
+				"values.yaml": pulumi.Sprintf(`clusterName: %s
+region: eu-central-1
+serviceAccount:
+  annotations:
+    eks.amazonaws.com/role-arn: %s
+vpcId: %s`, cluster.EksCluster.Name(), albRole.Arn, vpc.ID()),
 			},
-		}, pulumi.Provider(k8sProvider), pulumi.DependsOn([]pulumi.Resource{flux}))
+		}, pulumi.Provider(k8sProvider))
 		if err != nil {
 			return err
 		}
 
-		_, err = apiextensions.NewCustomResource(ctx, "pulumi-backstage-flux-gitops-aws-pulumi-operator-release", &apiextensions.CustomResourceArgs{
-			ApiVersion: pulumi.String("helm.toolkit.fluxcd.io/v2beta1"),
-			Kind:       pulumi.String("HelmRelease"),
+		// create namespace for the Pulumi Operator
+		operatorNS, err := v1.NewNamespace(ctx, "pulumi-backstage-flux-gitops-aws-pulumi-operator-ns", &v1.NamespaceArgs{
 			Metadata: &metav1.ObjectMetaArgs{
-				Name:      pulumi.String("pulumi-operator-helm-release"),
-				Namespace: pulumiOCIRepo.Metadata.Namespace(),
-				Labels: pulumi.StringMap{
-					"backstage.io/kubernetes-id": pulumi.String("gitops-cluster"),
-				},
+				Name: pulumi.String("pulumi-operator"),
 			},
-			OtherFields: kubernetes.UntypedArgs{
-				"spec": pulumi.Map{
-					"interval": pulumi.String("1m"),
-					"install": pulumi.Map{
-						"createNamespace": pulumi.Bool(true),
-						"crds":            pulumi.String("CreateReplace"),
-					},
-					"targetNamespace": pulumi.String("pulumi-operator"),
-					"chart": pulumi.Map{
-						"spec": pulumi.Map{
-							"chart":    pulumi.String("pulumi-kubernetes-operator"),
-							"interval": pulumi.String("1m"),
-							"version":  pulumi.String("0.2.0"),
-							"sourceRef": pulumi.Map{
-								"kind":      pulumiOCIRepo.Kind,
-								"name":      pulumiOCIRepo.Metadata.Name(),
-								"namespace": pulumiOCIRepo.Metadata.Namespace(),
-							},
-						},
-					},
-					"postRenderers": pulumi.Array{
-						pulumi.Map{
-							"kustomize": pulumi.Map{
-								"patchesStrategicMerge": pulumi.Array{
-									pulumi.Map{
-										"kind":       pulumi.String("Deployment"),
-										"apiVersion": pulumi.String("apps/v1"),
-										"metadata": pulumi.Map{
-											"name": pulumi.String("pulumi-operator"),
-											"labels": pulumi.StringMap{
-												"backstage.io/kubernetes-id": pulumi.String("gitops-cluster"),
-											},
-										},
-										"spec": pulumi.Map{
-											"template": pulumi.Map{
-												"metadata": pulumi.Map{
-													"labels": pulumi.StringMap{
-														"backstage.io/kubernetes-id": pulumi.String("gitops-cluster"),
-													},
-												},
-											},
-											"selector": pulumi.Map{
-												"matchLabels": pulumi.StringMap{
-													"backstage.io/kubernetes-id": pulumi.String("gitops-cluster"),
-												},
-											},
-										},
-									},
-								},
-								/*
-									"patchesJson6902": pulumi.Array{
-										pulumi.Map{
-											"target": pulumi.Map{
-												"version": pulumi.String("v1"),
-												"kind":    pulumi.String("Deployment"),
-												"name":    pulumi.String("pulumi-operator"),
-											},
-											"patch": pulumi.Array{
-												pulumi.Map{
-													"op":    pulumi.String("add"),
-													"path":  pulumi.String("/metadata/labels"),
-													"value": pulumi.StringMap{"backstage.io/kubernetes-id": pulumi.String("gitops-cluster")},
-												},
-												pulumi.Map{
-													"op":    pulumi.String("add"),
-													"path":  pulumi.String("/spec/template/metadata/labels/backstage.io~1kubernetes-id"),
-													"value": pulumi.String("gitops-cluster"),
-												},
-												pulumi.Map{
-													"op":    pulumi.String("add"),
-													"path":  pulumi.String("/spec/selector/matchLabels/backstage.io~1kubernetes-id"),
-													"value": pulumi.String("gitops-cluster"),
-												},
-											},
-										},
-									},*/
-							},
-						},
-					},
-					"values": pulumi.Map{
-						"extraEnv": pulumi.Array{
-							pulumi.Map{
-								"name":  pulumi.String("PULUMI_ACCESS_TOKEN"),
-								"value": config.GetSecret(ctx, "pulumi-pat"),
-							},
-						},
-						"fullnameOverride": pulumi.String("pulumi-operator"),
-					},
-				},
-			},
-		}, pulumi.Provider(k8sProvider), pulumi.DependsOn([]pulumi.Resource{pulumiOCIRepo}))
+		}, pulumi.Provider(k8sProvider))
 		if err != nil {
 			return err
 		}
 
-		gitRepo, err := apiextensions.NewCustomResource(ctx, "pulumi-backstage-flux-gitops-aws-repo", &apiextensions.CustomResourceArgs{
+		// add secret with Pulumi access token
+		_, err = v1.NewSecret(ctx, "pulumi-backstage-flux-gitops-aws-pulumi-access-token", &v1.SecretArgs{
+			Metadata: &metav1.ObjectMetaArgs{
+				Name:      pulumi.String("pulumi-access-token"),
+				Namespace: operatorNS.Metadata.Name(),
+			},
+			Type: pulumi.String("Opaque"),
+			StringData: pulumi.StringMap{
+				"pulumi-access-token": config.GetSecret(ctx, "pulumi-pat"),
+			},
+		}, pulumi.Provider(k8sProvider), pulumi.DependsOn([]pulumi.Resource{operatorNS}))
+
+		// deploy boostrap repository Kustomization
+		boostrapRepo, err := apiextensions.NewCustomResource(ctx, "pulumi-backstage-flux-gitops-aws-bootstrap-repo", &apiextensions.CustomResourceArgs{
 			ApiVersion: pulumi.String("source.toolkit.fluxcd.io/v1"),
 			Kind:       pulumi.String("GitRepository"),
 			Metadata: &metav1.ObjectMetaArgs{
-				Name:      pulumi.String("pulumi-backstage-flux-gitops-aws-git-repo"),
-				Namespace: flux.Namespace.Elem(),
+				Name: pulumi.String("bootstrap-repo"),
 				Labels: pulumi.StringMap{
 					"backstage.io/kubernetes-id": pulumi.String("gitops-cluster"),
 				},
+				Namespace: flux.Namespace,
 			},
 			OtherFields: kubernetes.UntypedArgs{
 				"spec": pulumi.Map{
-					"url": pulumi.String("https://github.com/my-backstage-demo/pulumi-infrastructure"),
+					"interval": pulumi.String("1m"),
 					"ref": pulumi.Map{
 						"branch": pulumi.String("main"),
 					},
-					"interval": pulumi.String("1m"),
+					"timeout": pulumi.String("60s"),
+					"url":     pulumi.String("https://github.com/my-backstage-demo/pulumi-gitops-repo.git"),
 				},
 			},
 		}, pulumi.Provider(k8sProvider), pulumi.DependsOn([]pulumi.Resource{flux}))
 		if err != nil {
 			return err
 		}
-
-		_, err = apiextensions.NewCustomResource(ctx, "pulumi-backstage-flux-gitops-aws-kustomization", &apiextensions.CustomResourceArgs{
+		_, err = apiextensions.NewCustomResource(ctx, "pulumi-backstage-flux-gitops-aws-bootstrap-kustomization", &apiextensions.CustomResourceArgs{
 			ApiVersion: pulumi.String("kustomize.toolkit.fluxcd.io/v1"),
 			Kind:       pulumi.String("Kustomization"),
 			Metadata: &metav1.ObjectMetaArgs{
-				Name:      pulumi.String("pulumi-backstage-flux-gitops-aws-kustomization"),
-				Namespace: pulumi.String("pulumi-operator"),
+				Name: pulumi.String("bootstrap-kustomization"),
 				Labels: pulumi.StringMap{
 					"backstage.io/kubernetes-id": pulumi.String("gitops-cluster"),
 				},
+				Namespace: boostrapRepo.Metadata.Namespace(),
 			},
 			OtherFields: kubernetes.UntypedArgs{
 				"spec": pulumi.Map{
-					"interval":        pulumi.String("1m"),
-					"prune":           pulumi.Bool(true),
-					"force":           pulumi.Bool(false),
-					"targetNamespace": pulumi.String("pulumi-operator"),
+					"force":    pulumi.Bool(false),
+					"interval": pulumi.String("1m"),
+					"prune":    pulumi.Bool(true),
+					"path":     pulumi.String("./flux/clusters/aws-gitops-platform"),
 					"sourceRef": pulumi.Map{
-						"kind":      gitRepo.Kind,
-						"name":      gitRepo.Metadata.Name(),
-						"namespace": gitRepo.Metadata.Namespace(),
+						"kind":      boostrapRepo.Kind,
+						"name":      boostrapRepo.Metadata.Name(),
+						"namespace": boostrapRepo.Metadata.Namespace(),
 					},
-					"path": pulumi.String("./kustomize"),
+					"targetNamespace": boostrapRepo.Metadata.Namespace(),
 				},
 			},
-		}, pulumi.Provider(k8sProvider), pulumi.DependsOn([]pulumi.Resource{gitRepo}))
+		}, pulumi.Provider(k8sProvider))
 		if err != nil {
 			return err
 		}
