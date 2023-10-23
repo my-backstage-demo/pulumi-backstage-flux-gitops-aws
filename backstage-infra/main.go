@@ -232,6 +232,7 @@ func main() {
 						"s3:*",
 						"ecr:*",
 						"rds:*",
+						"ecs:*",
 						"ec2:*",
 						"eks:*",
 						"iam:*",
@@ -349,6 +350,9 @@ func main() {
 
 		backstageECSTask, err := ecs.NewTaskDefinition(ctx, "pulumi-backstage-ecs-task", &ecs.TaskDefinitionArgs{
 			Family: pulumi.String("backstage"),
+			EphemeralStorage: &ecs.TaskDefinitionEphemeralStorageArgs{
+				SizeInGib: pulumi.Int(100),
+			},
 			ContainerDefinitions: pulumi.Sprintf(`[
     {
       "name": "app-first-task",

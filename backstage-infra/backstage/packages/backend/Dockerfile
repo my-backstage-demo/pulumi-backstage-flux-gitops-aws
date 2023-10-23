@@ -9,7 +9,7 @@
 #
 # Once the commands have been run, you can build the image using `yarn build-image`
 
-FROM --platform=linux/amd64 pulumi/pulumi:3.88.0
+FROM --platform=linux/amd64 pulumi/pulumi:3.89.0
 
 # Install isolate-vm dependencies, these are needed by the @backstage/plugin-scaffolder-backend.
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
