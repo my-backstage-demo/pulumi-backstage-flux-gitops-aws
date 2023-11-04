@@ -8,7 +8,6 @@ import (
 	"github.com/pulumi/pulumi-eks/sdk/go/eks"
 	"github.com/pulumi/pulumi-kubernetes/sdk/v3/go/kubernetes"
 	"github.com/pulumi/pulumi-kubernetes/sdk/v3/go/kubernetes/apiextensions"
-	v12 "github.com/pulumi/pulumi-kubernetes/sdk/v3/go/kubernetes/apps/v1"
 	v1 "github.com/pulumi/pulumi-kubernetes/sdk/v3/go/kubernetes/core/v1"
 	"github.com/pulumi/pulumi-kubernetes/sdk/v3/go/kubernetes/helm/v3"
 	metav1 "github.com/pulumi/pulumi-kubernetes/sdk/v3/go/kubernetes/meta/v1"
@@ -189,7 +188,7 @@ func main() {
 			Chart:           pulumi.String("oci://ghcr.io/fluxcd-community/charts/flux2"),
 			Namespace:       pulumi.String("flux-system"),
 			CreateNamespace: pulumi.Bool(true),
-			Version:         pulumi.String("2.10.1"),
+			Version:         pulumi.String("2.10.6"),
 			Values: pulumi.Map{
 				"helmController": pulumi.Map{
 					"labels": backStageLabel,
@@ -213,24 +212,6 @@ func main() {
 		}, pulumi.Provider(k8sProvider))
 		if err != nil {
 			return err
-		}
-
-		for _, controller := range []string{"kustomize-controller", "helm-controller", "notification-controller", "source-controller", "image-reflector-controller", "image-automation-controller"} {
-			_, err = v12.NewDeploymentPatch(ctx, fmt.Sprintf("pulumi-backstage-flux-gitops-aws-%s-patch", controller), &v12.DeploymentPatchArgs{
-				Metadata: &metav1.ObjectMetaPatchArgs{
-					Annotations: pulumi.StringMap{
-						"pulumi.com/patchForce": pulumi.String("true"),
-					},
-					Name:      pulumi.String(controller),
-					Namespace: flux.Namespace,
-					Labels: pulumi.StringMap{
-						"backstage.io/kubernetes-id": pulumi.String("gitops-cluster"),
-					},
-				},
-			}, pulumi.Provider(k8sProvider), pulumi.DependsOn([]pulumi.Resource{flux}))
-			if err != nil {
-				return err
-			}
 		}
 
 		_, err = v1.NewSecret(ctx, "aws-lb-controller-secret", &v1.SecretArgs{
