@@ -36,6 +36,7 @@ const (
 
 func main() {
 	pulumi.Run(func(ctx *pulumi.Context) error {
+
 		vpc, err := ec2.NewVpc(ctx, "pulumi-backstage-flux-gitops-aws-vpc", &ec2.VpcArgs{
 			CidrBlock: pulumi.String("10.0.0.0/24"),
 		})
@@ -105,6 +106,7 @@ func main() {
 			ProviderCredentialOpts: eks.KubeconfigOptionsArgs{
 				ProfileName: pulumi.String("default"),
 			},
+			Version:            pulumi.String(config.Get(ctx, "eksVersion")),
 			CreateOidcProvider: pulumi.Bool(true),
 		})
 		if err != nil {
@@ -188,7 +190,7 @@ func main() {
 			Chart:           pulumi.String("oci://ghcr.io/fluxcd-community/charts/flux2"),
 			Namespace:       pulumi.String("flux-system"),
 			CreateNamespace: pulumi.Bool(true),
-			Version:         pulumi.String("2.10.6"),
+			Version:         pulumi.String("2.11.1"),
 			Values: pulumi.Map{
 				"helmController": pulumi.Map{
 					"labels": backStageLabel,

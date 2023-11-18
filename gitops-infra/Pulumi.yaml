@@ -1,3 +1,6 @@
 name: pulumi-backstage-flux-gitops-aws
 runtime: go
 description: A minimal Go Pulumi program
+
+config:
+  eksVersion: "1.28"
