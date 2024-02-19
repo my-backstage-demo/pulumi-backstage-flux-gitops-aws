@@ -77,7 +77,7 @@ catalog:
     - allow: [Domain, Systems, Group, Component, System, API, Resource, Location]
   locations:
     - type: url
-      target: https://github.com/my-backstage-demo/backstage-pulumi-templates/blob/main/scaffolder-templates/templates.yaml
+      target: https://github.com/my-backstage-demo/backstage-pulumi-templates/blobbackstage-azure-infrastructure/main/scaffolder-templates/templates.yaml
       rules:
       - allow: [Template]
     # Local example data, file locations are relative to the backend process, typically `packages/backend`
