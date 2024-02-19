@@ -190,7 +190,7 @@ func main() {
 			Chart:           pulumi.String("oci://ghcr.io/fluxcd-community/charts/flux2"),
 			Namespace:       pulumi.String("flux-system"),
 			CreateNamespace: pulumi.Bool(true),
-			Version:         pulumi.String("2.11.1"),
+			Version:         pulumi.String("2.12.2"),
 			Values: pulumi.Map{
 				"helmController": pulumi.Map{
 					"labels": backStageLabel,
